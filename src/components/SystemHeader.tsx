@@ -1,4 +1,4 @@
-import { Activity, Monitor, Settings, User } from "lucide-react";
+import { Activity, Train, Settings, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -9,7 +9,7 @@ export default function SystemHeader() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
-              <Monitor className="w-8 h-8 text-primary-foreground" />
+              <Train className="w-8 h-8 text-blue-400" />
               <div>
                 <h1 className="text-2xl font-bold text-primary-foreground">ITMS</h1>
                 <p className="text-sm text-primary-foreground/80">Indigenous Track Monitoring System</p>
