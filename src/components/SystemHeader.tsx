@@ -9,7 +9,7 @@ export default function SystemHeader() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
-              <Train className="w-8 h-8 text-blue-400" />
+              <Train className="w-8 h-8 text-white" />
               <div>
                 <h1 className="text-2xl font-bold text-primary-foreground">ITMS</h1>
                 <p className="text-sm text-primary-foreground/80">Indigenous Track Monitoring System</p>
