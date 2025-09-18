@@ -1,20 +1,27 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Activity, Gauge, MapPin, Clock, Zap, AlertTriangle } from "lucide-react";
+import { useRealtimeData } from "@/hooks/useRealtimeData";
 
 export default function RealTimeMetrics() {
+  const { currentData, alerts, isConnected } = useRealtimeData();
+
+  if (!currentData) {
+    return <div className="grid grid-cols-1 md:grid-cols-3 gap-6">Loading real-time data...</div>;
+  }
+
   const metrics = [
     {
       title: "Current Speed",
-      value: "145",
+      value: currentData.speed.toFixed(0),
       unit: "km/h",
       icon: Gauge,
-      status: "normal",
+      status: currentData.speed > 160 ? "warning" : "normal",
       description: "Operating within limits"
     },
     {
       title: "Track Position",
-      value: "KM 1247.5",
+      value: `KM ${currentData.chainage.toFixed(2)}`,
       unit: "chainage",
       icon: MapPin,
       status: "normal",
@@ -45,12 +52,12 @@ export default function RealTimeMetrics() {
       description: "AI vision processing"
     },
     {
-      title: "Defects Detected",
-      value: "3",
+      title: "Active Alerts",
+      value: (alerts.critical + alerts.warning).toString(),
       unit: "alerts",
       icon: AlertTriangle,
-      status: "warning",
-      description: "Require inspection"
+      status: alerts.critical > 0 ? "error" : alerts.warning > 0 ? "warning" : "normal",
+      description: `${alerts.critical} critical, ${alerts.warning} warnings`
     }
   ];
 

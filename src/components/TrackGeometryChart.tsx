@@ -1,18 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
-import { TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { TrendingUp } from "lucide-react";
+import { useRealtimeData } from "@/hooks/useRealtimeData";
 
 export default function TrackGeometryChart() {
-  // Simulated real-time track geometry data
-  const geometryData = [
-    { chainage: 1245.0, gauge: 1435.2, alignment: 2.1, unevenness: 1.8, twist: 0.9, crossLevel: 1.2 },
-    { chainage: 1245.5, gauge: 1434.8, alignment: 2.3, unevenness: 2.1, twist: 1.1, crossLevel: 1.4 },
-    { chainage: 1246.0, gauge: 1435.1, alignment: 1.9, unevenness: 1.6, twist: 0.8, crossLevel: 1.0 },
-    { chainage: 1246.5, gauge: 1435.3, alignment: 2.2, unevenness: 1.9, twist: 1.0, crossLevel: 1.3 },
-    { chainage: 1247.0, gauge: 1434.9, alignment: 2.4, unevenness: 2.2, twist: 1.2, crossLevel: 1.5 },
-    { chainage: 1247.5, gauge: 1435.0, alignment: 2.0, unevenness: 1.7, twist: 0.9, crossLevel: 1.1 },
-  ];
+  const { historyData } = useRealtimeData();
+
+  // Convert real-time data for chart display
+  const chartData = historyData.slice(-20).map(data => ({
+    chainage: data.chainage,
+    gauge: Math.abs(data.gauge - 1676), // Show deviation from Indian broad gauge standard
+    alignment: Math.abs((data.leftRailAlignment + data.rightRailAlignment) / 2),
+    unevenness: data.unevenness,
+    twist: Math.abs(data.twist),
+    crossLevel: Math.abs(data.crossLevel)
+  }));
 
   const parameters = [
     {
@@ -88,7 +91,7 @@ export default function TrackGeometryChart() {
         <CardContent>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={geometryData}>
+              <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis 
                   dataKey="chainage" 
