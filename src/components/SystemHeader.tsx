@@ -1,7 +1,6 @@
-import { Activity, Settings, User } from "lucide-react";
+import { Activity, Train, Settings, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import tracsLogo from "@/assets/tracs-logo.png";
 
 export default function SystemHeader() {
   return (
@@ -10,12 +9,10 @@ export default function SystemHeader() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
-              <div className="bg-white rounded-full p-1 flex items-center justify-center w-10 h-10">
-                <img src={tracsLogo} alt="TRACS Logo" className="w-6 h-6" />
-              </div>
+              <Train className="w-8 h-8 text-white" />
               <div>
-                <h1 className="text-2xl font-bold text-primary-foreground">TRACS</h1>
-                <p className="text-sm text-primary-foreground/80">Track Reliability and Condition Surveillance</p>
+                <h1 className="text-2xl font-bold text-primary-foreground">ITMS</h1>
+                <p className="text-sm text-primary-foreground/80">Indigenous Track Monitoring System</p>
               </div>
             </div>
             <Badge variant="secondary" className="ml-4">
