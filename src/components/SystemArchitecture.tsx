@@ -134,7 +134,7 @@ export default function SystemArchitecture() {
           <div className="aspect-video bg-muted/30 rounded-lg overflow-hidden border border-border/50">
             <img 
               src={systemArchImage} 
-              alt="TRACS System Architecture Diagram showing hardware and software components"
+              alt="ITMS System Architecture Diagram showing hardware and software components"
               className="w-full h-full object-contain"
             />
           </div>

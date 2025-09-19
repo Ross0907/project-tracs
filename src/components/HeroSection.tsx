@@ -27,12 +27,12 @@ export default function HeroSection() {
           </div>
           
           <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-            TRACS
+            Indigenous Track 
             <span className="bg-gradient-secondary bg-clip-text text-transparent"> Monitoring System</span>
           </h1>
           
           <p className="text-xl md:text-2xl mb-8 text-primary-foreground/90 leading-relaxed">
-            Track Reliability and Condition Surveillance - Advanced contactless monitoring solution for Indian Railways featuring AI-powered defect detection, 
+            Advanced contactless monitoring solution for Indian Railways featuring AI-powered defect detection, 
             real-time track geometry analysis, and comprehensive compliance with EN 13848 & RDSO standards.
           </p>
           
