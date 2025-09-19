@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // GitHub Pages base path (replace if your repo name changes)
-  base: "/project-tracs-823fe484/",
+  // GitHub Pages base path. Use env when set (CI), otherwise "/" for local/dev.
+  // Set PUBLIC_BASE_PATH to "/<repo-name>/" in GitHub Actions for Pages deploys.
+  base: process.env.PUBLIC_BASE_PATH || "/",
 }));

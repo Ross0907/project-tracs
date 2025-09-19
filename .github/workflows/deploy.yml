@@ -30,7 +30,8 @@ jobs:
       - name: Vite GitHub Pages Deployer
         uses: skywarth/vite-github-pages-deployer@v1.5.0
         with:
-          public_base_path: /project-tracs-823fe484/
+          # Use repository name dynamically: '/<repo>/'
+          public_base_path: /${{ github.event.repository.name }}/
           build_path: ./dist
           install_phase_node_env: dev
           build_phase_node_env: production
@@ -38,3 +39,5 @@ jobs:
           artifact_name: github-pages
           debug_mode: false
           working_path: ./
+        env:
+          PUBLIC_BASE_PATH: /${{ github.event.repository.name }}/
