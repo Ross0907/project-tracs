@@ -12,6 +12,11 @@ permissions:
 
 jobs:
   deploy:
+    environment:
+      name: github-pages
+    concurrency:
+      group: pages
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
