@@ -65,6 +65,14 @@ PAGE_HTML = """
       .result { margin-top: 12px; }
       .result img { max-width: 100%; border-radius: 12px; border: 1px solid #223040; background: #0b1117; }
       .small { color: var(--muted); font-size: 12px; }
+      /* Camera additions */
+      .cam { display: grid; gap: 10px; }
+      .cam-controls { display:flex; gap: 10px; align-items:center; flex-wrap: wrap; }
+      .cam-wrap { position: relative; background: #0b1117; border: 1px solid #1f2a38; border-radius: 12px; overflow: hidden; }
+      video#cam { width: 100%; max-height: 360px; display:block; }
+      img.preview { max-width: 100%; border-radius: 8px; border: 1px solid #223040; background: #0b1117; }
+      select#cameraSelect { background: #0b1117; color: #dce4ee; border: 1px solid #1f2a38; border-radius: 8px; padding: 8px; }
+      .hint { color: var(--muted); font-size: 12px; margin-top: -4px; }
     </style>
   </head>
   <body>
@@ -88,12 +96,42 @@ PAGE_HTML = """
               <input type="file" name="perfect" accept="image/*" required />
             </div>
           </div>
+
+          <div class="panel cam" style="margin-top:16px;">
+            <h3>Camera capture (optional)</h3>
+            <div class="hint">Use your camera to capture both images. Captured photos auto-fill the file inputs above.</div>
+            <div class="cam-controls">
+              <select id="cameraSelect" aria-label="Choose camera"></select>
+              <button type="button" id="startCam">Start camera</button>
+              <button type="button" id="stopCam" disabled>Stop</button>
+            </div>
+            <div class="cam-wrap">
+              <video id="cam" autoplay playsinline></video>
+              <canvas id="canvas" style="display:none"></canvas>
+            </div>
+            <div class="actions">
+              <button type="button" id="captureDented" disabled>Capture dented</button>
+              <button type="button" id="capturePerfect" disabled>Capture perfect</button>
+              <span class="small">Tip: retake as needed; last capture is used.</span>
+            </div>
+            <div class="row">
+              <div>
+                <label>Preview — dented</label>
+                <img id="previewDented" class="preview" alt="Dented preview" />
+              </div>
+              <div>
+                <label>Preview — perfect</label>
+                <img id="previewPerfect" class="preview" alt="Perfect preview" />
+              </div>
+            </div>
+          </div>
+
           <div class="actions">
             <button type="submit">Run Analysis</button>
             <span class="small">Max 32MB per image</span>
           </div>
         </form>
-        <div class="layout">
+        <div class="layout" style="margin-top:12px;">
           <div class="panel">
             <div id="result" class="result"></div>
           </div>
@@ -102,29 +140,150 @@ PAGE_HTML = """
             <div id="details" class="small">Upload images and run analysis…</div>
           </div>
         </div>
+
+        <div class="panel" style="margin-top:16px;">
+          <h3>WebUSB (optional)</h3>
+          <div class="hint">Connect supported USB devices for future automation. Most webcams are not accessible via WebUSB; use the Camera capture above for images.</div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px;">
+            <label for="vid" class="small">vendorId (hex)</label>
+            <input id="vid" placeholder="0x2341" style="width:110px; padding:6px 8px; background:#0b1117; border:1px solid #1f2a38; color:#dce4ee; border-radius:8px;" />
+            <label for="pid" class="small">productId (hex, optional)</label>
+            <input id="pid" placeholder="0x0001" style="width:110px; padding:6px 8px; background:#0b1117; border:1px solid #1f2a38; color:#dce4ee; border-radius:8px;" />
+            <button type="button" id="connectUsb">Connect USB</button>
+            <button type="button" id="disconnectUsb" disabled>Disconnect</button>
+          </div>
+          <pre id="usbInfo" class="small" style="margin-top:10px; white-space:pre-wrap; background:#0b1117; border:1px solid #1f2a38; padding:10px; border-radius:8px; min-height:44px;"></pre>
+        </div>
       </div>
     </div>
+
     <script>
+      // DOM refs
       const form = document.getElementById('form');
       const result = document.getElementById('result');
       const details = document.getElementById('details');
+      const startCamBtn = document.getElementById('startCam');
+      const stopCamBtn = document.getElementById('stopCam');
+      const captureDentedBtn = document.getElementById('captureDented');
+      const capturePerfectBtn = document.getElementById('capturePerfect');
+      const video = document.getElementById('cam');
+      const canvas = document.getElementById('canvas');
+      const cameraSelect = document.getElementById('cameraSelect');
+      const inputDented = document.querySelector('input[name="dented"]');
+      const inputPerfect = document.querySelector('input[name="perfect"]');
+      const previewDented = document.getElementById('previewDented');
+      const previewPerfect = document.getElementById('previewPerfect');
+
+      let currentStream = null;
+
+      async function listCameras() {
+        if (!navigator.mediaDevices?.enumerateDevices) return;
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const cams = devices.filter(d => d.kind === 'videoinput');
+          cameraSelect.innerHTML = '';
+          cams.forEach((cam, idx) => {
+            const opt = document.createElement('option');
+            opt.value = cam.deviceId;
+            opt.textContent = cam.label || `Camera ${idx + 1}`;
+            cameraSelect.appendChild(opt);
+          });
+        } catch (e) { console.warn('enumerateDevices error', e); }
+      }
+
+      async function startCamera() {
+        try {
+          stopCamera();
+          const deviceId = cameraSelect.value || undefined;
+          const constraints = {
+            video: deviceId ? { deviceId: { exact: deviceId } } : {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
+            },
+            audio: false
+          };
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          currentStream = stream;
+          video.srcObject = stream;
+          startCamBtn.disabled = true;
+          stopCamBtn.disabled = false;
+          captureDentedBtn.disabled = false;
+          capturePerfectBtn.disabled = false;
+        } catch (e) {
+          alert('Unable to access camera: ' + (e?.message || e));
+          console.error(e);
+        }
+      }
+
+      function stopCamera() {
+        if (currentStream) {
+          currentStream.getTracks().forEach(t => t.stop());
+          currentStream = null;
+        }
+        startCamBtn.disabled = false;
+        stopCamBtn.disabled = true;
+        captureDentedBtn.disabled = true;
+        capturePerfectBtn.disabled = true;
+        video.srcObject = null;
+      }
+
+      async function captureToInput(target) {
+        if (!currentStream) { alert('Start the camera first.'); return; }
+        const track = currentStream.getVideoTracks()[0];
+        const settings = track.getSettings();
+        const w = settings.width || 1280;
+        const h = settings.height || 720;
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, w, h);
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.95));
+        if (!blob) return;
+        const fname = `${target}-capture-${Date.now()}.jpg`;
+        const file = new File([blob], fname, { type: 'image/jpeg' });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        if (target === 'dented') {
+          inputDented.files = dt.files;
+          previewDented.src = URL.createObjectURL(blob);
+        } else {
+          inputPerfect.files = dt.files;
+          previewPerfect.src = URL.createObjectURL(blob);
+        }
+      }
+
+      // Initialize device list when permissions are granted
+      if (navigator.mediaDevices?.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+          .then(s => { s.getTracks().forEach(t => t.stop()); return listCameras(); })
+          .catch(() => listCameras());
+      }
+
+      startCamBtn?.addEventListener('click', startCamera);
+      stopCamBtn?.addEventListener('click', stopCamera);
+      cameraSelect?.addEventListener('change', () => { if (currentStream) startCamera(); });
+      captureDentedBtn?.addEventListener('click', () => captureToInput('dented'));
+      capturePerfectBtn?.addEventListener('click', () => captureToInput('perfect'));
+      window.addEventListener('beforeunload', stopCamera);
+
+      // Form submit -> process images
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         result.innerHTML = 'Processing...';
         const fd = new FormData(form);
         const res = await fetch('/process', { method: 'POST', body: fd });
-        let data;
-        try { data = await res.json(); } catch { data = null; }
+        let data; try { data = await res.json(); } catch { data = null; }
         if (!res.ok) {
           const msg = data && data.error ? data.error : `Processing failed (HTTP ${res.status}).`;
           result.textContent = msg;
           return;
         }
-        result.innerHTML = `<p class=\"small\">Took ${data.time.toFixed(2)}s</p><img src=\"${data.image_url}\" alt=\"Profile Comparison\" />`;
+        result.innerHTML = `<p class="small">Took ${data.time.toFixed(2)}s</p><img src="${data.image_url}" alt="Profile Comparison" />`;
         if (data.metrics) {
           const m = data.metrics;
           details.innerHTML = `
-            <ul style=\"margin:0; padding-left: 18px;\">
+            <ul style="margin:0; padding-left: 18px;">
               <li><strong>Max deviation:</strong> ${m.max_deviation_px} px</li>
               <li><strong>Mean deviation:</strong> ${m.mean_deviation_px} px</li>
               <li><strong>RMS deviation:</strong> ${m.rms_deviation_px} px</li>
@@ -136,6 +295,59 @@ PAGE_HTML = """
           details.textContent = 'No metrics available (insufficient features).';
         }
       });
+
+      // --- WebUSB helpers ---
+      const connectUsbBtn = document.getElementById('connectUsb');
+      const disconnectUsbBtn = document.getElementById('disconnectUsb');
+      const usbInfo = document.getElementById('usbInfo');
+      const vidInput = document.getElementById('vid');
+      const pidInput = document.getElementById('pid');
+      let usbDevice = null;
+
+      const hexToInt = (s) => {
+        if (!s) return undefined;
+        const v = s.toString().trim().toLowerCase();
+        const clean = v.startsWith('0x') ? v.slice(2) : v;
+        const n = parseInt(clean, 16);
+        return Number.isFinite(n) ? n : undefined;
+      };
+
+      async function connectUsb() {
+        if (!('usb' in navigator)) { usbInfo.textContent = 'WebUSB not supported in this browser.'; return; }
+        const vendorId = hexToInt(vidInput.value);
+        const productId = hexToInt(pidInput.value);
+        if (!vendorId) { usbInfo.textContent = 'Enter a valid vendorId (hex), e.g., 0x2341.'; return; }
+        try {
+          const filters = productId ? [{ vendorId, productId }] : [{ vendorId }];
+          const device = await navigator.usb.requestDevice({ filters });
+          await device.open();
+          if (device.configuration === null) { await device.selectConfiguration(1); }
+          const iface = device.configuration?.interfaces?.[0];
+          if (iface) { await device.claimInterface(iface.interfaceNumber); }
+          usbDevice = device;
+          connectUsbBtn.disabled = true;
+          disconnectUsbBtn.disabled = false;
+          usbInfo.textContent = `Connected to:\n` +
+            `Product: ${device.productName || '-'}\n` +
+            `Manufacturer: ${device.manufacturerName || '-'}\n` +
+            `Serial: ${device.serialNumber || '-'}\n` +
+            `VID: 0x${device.vendorId.toString(16)} PID: 0x${device.productId.toString(16)}`;
+        } catch (e) {
+          usbInfo.textContent = 'USB connect failed: ' + (e?.message || e);
+          console.error(e);
+        }
+      }
+
+      async function disconnectUsb() {
+        if (!usbDevice) return;
+        try { if (usbDevice.opened) { try { await usbDevice.close(); } catch {} } }
+        finally {
+          usbDevice = null; connectUsbBtn.disabled = false; disconnectUsbBtn.disabled = true; usbInfo.textContent = 'Disconnected.';
+        }
+      }
+
+      connectUsbBtn?.addEventListener('click', connectUsb);
+      disconnectUsbBtn?.addEventListener('click', disconnectUsb);
     </script>
   </body>
  </html>
