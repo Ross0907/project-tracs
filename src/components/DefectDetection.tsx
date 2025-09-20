@@ -1,7 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Eye, XCircle, Clock, Download } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "@/components/ui/use-toast";
+import { exportToCSV, exportToXML, exportScreenshot, exportVideo, ExportData } from "@/utils/exportUtils";
+import { AlertTriangle, Eye, XCircle, Clock, Download, FileSpreadsheet, FileCode, Camera, Video } from "lucide-react";
 
 export default function DefectDetection() {
   const recentDetections = [
@@ -77,6 +87,48 @@ export default function DefectDetection() {
     }
   };
 
+  const handleExport = (format: 'csv' | 'xml' | 'jpeg' | 'avi') => {
+    const exportData: ExportData = {
+      headers: [
+        'ID', 'Type', 'Severity', 'Location', 'Time', 'Confidence(%)', 'Status', 'Description'
+      ],
+      data: recentDetections.map(d => [
+        d.id,
+        d.type,
+        d.severity,
+        d.location,
+        d.timestamp,
+        d.confidence,
+        d.status,
+        d.description,
+      ]),
+      filename: 'defect_detection_report'
+    };
+
+    try {
+      switch (format) {
+        case 'csv':
+          exportToCSV(exportData);
+          toast({ title: 'Exported CSV', description: `${exportData.filename}.csv saved.` });
+          break;
+        case 'xml':
+          exportToXML(exportData);
+          toast({ title: 'Exported XML', description: `${exportData.filename}.xml saved.` });
+          break;
+        case 'jpeg':
+          exportScreenshot('defect-detection-report', exportData.filename);
+          toast({ title: 'Exporting JPEG', description: `Saving ${exportData.filename}.jpg...` });
+          break;
+        case 'avi':
+          exportVideo(exportData.filename);
+          break;
+      }
+    } catch (err) {
+      console.error('Export failed', err);
+      toast({ title: 'Export failed', description: 'Please try again.', variant: 'destructive' });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -106,15 +158,36 @@ export default function DefectDetection() {
               <Badge className="bg-secondary/10 text-secondary border-secondary/20">
                 Real-time Analysis
               </Badge>
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Export Report
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Download className="w-4 h-4 mr-2" />
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Export As</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleExport('csv')}>
+                    <FileSpreadsheet className="w-4 h-4 mr-2" /> CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport('xml')}>
+                    <FileCode className="w-4 h-4 mr-2" /> XML
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport('jpeg')}>
+                    <Camera className="w-4 h-4 mr-2" /> JPEG (screenshot)
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleExport('avi')}>
+                    <Video className="w-4 h-4 mr-2" /> AVI (coming soon)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div id="defect-detection-report" className="space-y-4">
             {recentDetections.map((detection) => (
               <div key={detection.id} className="p-4 bg-muted/20 rounded-lg border border-border/50">
                 <div className="flex items-start justify-between mb-3">

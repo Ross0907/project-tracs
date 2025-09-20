@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FileSpreadsheet, FileCode, Camera, Video } from "lucide-react";
 import { exportToCSV, exportToXML, exportScreenshot, exportVideo, ExportData } from "@/utils/exportUtils";
+import { toast } from "@/components/ui/use-toast";
 
 export default function SummaryReports() {
   const lipFlowData = [
@@ -41,19 +42,27 @@ export default function SummaryReports() {
       filename: `${reportType}_summary_report`
     };
 
-    switch (format) {
-      case 'csv':
-        exportToCSV(exportData);
-        break;
-      case 'xml':
-        exportToXML(exportData);
-        break;
-      case 'jpeg':
-        exportScreenshot(`${reportType}-report-table`, exportData.filename);
-        break;
-      case 'avi':
-        exportVideo(exportData.filename);
-        break;
+    try {
+      switch (format) {
+        case 'csv':
+          exportToCSV(exportData);
+          toast({ title: 'Exported CSV', description: `${exportData.filename}.csv saved.` });
+          break;
+        case 'xml':
+          exportToXML(exportData);
+          toast({ title: 'Exported XML', description: `${exportData.filename}.xml saved.` });
+          break;
+        case 'jpeg':
+          exportScreenshot(`${reportType}-report-table`, exportData.filename);
+          toast({ title: 'Exporting JPEG', description: `Saving ${exportData.filename}.jpg...` });
+          break;
+        case 'avi':
+          exportVideo(exportData.filename);
+          break;
+      }
+    } catch (err) {
+      console.error('Export failed', err);
+      toast({ title: 'Export failed', description: 'Please try again.', variant: 'destructive' });
     }
   };
 
