@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TRACS • Image Processing POC</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji"; margin: 0; background: #0b0c10; color: #e6edf3; }
+    .container { max-width: 960px; margin: 0 auto; padding: 24px; }
+    .banner { background: #2a2e35; border: 1px solid #3a3f46; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; }
+    .banner strong { color: #ffcc00; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    label { display: block; margin-bottom: 6px; color: #9da7b1; font-weight: 600; }
+    input[type=file] { width: 100%; background: #0b1117; color: #e6edf3; padding: 10px; border-radius: 8px; border: 1px solid #2b3137; }
+    .btn { background: #238636; color: white; padding: 10px 16px; border: 0; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .actions { margin-top: 16px; }
+    .result { margin-top: 24px; text-align: center; }
+    .result img { max-width: 100%; border-radius: 10px; border: 1px solid #30363d; }
+    .flash { background: #3d1e22; border: 1px solid #6e2e36; color: #ffd1d5; padding: 10px 12px; border-radius: 8px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="banner">
+      <strong>This is a Rudimentary Proof of concept, Work in Progress</strong>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form class="card" action="/" method="POST" enctype="multipart/form-data">
+      <div class="row">
+        <div>
+          <label for="with_defects">Image 1 (With Defects)</label>
+          <input id="with_defects" name="with_defects" type="file" accept="image/*" required />
+        </div>
+        <div>
+          <label for="without_defects">Image 2 (Without Defects)</label>
+          <input id="without_defects" name="without_defects" type="file" accept="image/*" required />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn" type="submit">Run Analysis</button>
+      </div>
+    </form>
+
+    {% if result_url %}
+      <div class="result">
+        <p>Processing Time: {{ processing_time }}s</p>
+        <img src="{{ result_url }}" alt="Profile Comparison Result" />
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>

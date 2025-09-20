@@ -64,9 +64,16 @@ export default function HeroSection() {
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button variant="secondary" size="lg" className="shadow-elegant">
-              <Shield className="w-5 h-5 mr-2" />
-              View Live Dashboard
+            <Button variant="secondary" size="lg" className="shadow-elegant" asChild>
+              <a
+                href={(import.meta as any).env?.VITE_POC_URL || "http://127.0.0.1:5050/"}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open Live Dashboard (Python POC)"
+              >
+                <Shield className="w-5 h-5 mr-2" />
+                View Live Dashboard
+              </a>
             </Button>
             <Button variant="header" size="lg" asChild>
               <a
