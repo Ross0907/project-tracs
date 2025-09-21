@@ -159,10 +159,24 @@ PAGE_HTML = """
             </div>
           </div>
 
-          <div class="actions">
-            <button type="submit">Run Analysis</button>
-            <span class="small">Max 32MB per image</span>
-          </div>
+            <div style="margin-top:12px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+              <label class="small">Alignment:</label>
+              <select id="alignMode" name="align_mode" style="background:#0b1117; color:#dce4ee; border:1px solid #1f2a38; border-radius:8px; padding:6px;">
+                <option value="ransac">RANSAC+Similarity</option>
+                <option value="icp">ICP (refine)</option>
+                <option value="piecewise">Piecewise (fallback)</option>
+              </select>
+              <label class="small">Inlier px:</label>
+              <input id="inlierPx" name="inlier_px" type="number" value="25" step="1" style="width:90px; padding:6px 8px; background:#0b1117; border:1px solid #1f2a38; color:#dce4ee; border-radius:8px;" />
+              <label class="small" title="Allow similarity scaling (uniform).">Allow scale:</label>
+              <input id="allowScale" name="allow_scale" type="checkbox" checked />
+              <label class="small" title="Return a debug image overlaying matches and inliers.">Debug visual:</label>
+              <input id="debugVisual" name="debug_visual" type="checkbox" />
+              <div class="actions">
+                <button type="submit">Run Analysis</button>
+                <span class="small">Max 32MB per image</span>
+              </div>
+            </div>
         </form>
         <div class="layout" style="margin-top:12px;">
           <div class="panel">
@@ -507,11 +521,36 @@ PAGE_HTML = """
         autoStatus.textContent = 'Click two points on the overlay to calibrate.';
       });
 
-      // Restore scale from previous session
+      // Restore scale and alignment settings from previous session
       try {
         const saved = localStorage.getItem(LS_KEY_SCALE);
         const locked = localStorage.getItem(LS_KEY_LOCK) === '1';
         if (saved) { mmPerPxInput.value = saved; userLockedScale = locked; }
+        const savedAlign = localStorage.getItem('tracs_align_mode');
+        const savedInlier = localStorage.getItem('tracs_inlier_px');
+        const savedAllowScale = localStorage.getItem('tracs_allow_scale') === '1';
+        const savedDebug = localStorage.getItem('tracs_debug_visual') === '1';
+        if (savedAlign && document.getElementById('alignMode')) document.getElementById('alignMode').value = savedAlign;
+        if (savedInlier && document.getElementById('inlierPx')) document.getElementById('inlierPx').value = savedInlier;
+        if (document.getElementById('allowScale')) document.getElementById('allowScale').checked = savedAllowScale;
+        if (document.getElementById('debugVisual')) document.getElementById('debugVisual').checked = savedDebug;
+      } catch {}
+
+      // Persist alignment UI changes
+      try {
+        const persistAlignSettings = () => {
+          try {
+            const align = document.getElementById('alignMode')?.value || 'ransac';
+            const inlier = document.getElementById('inlierPx')?.value || '25';
+            const allow = document.getElementById('allowScale')?.checked ? '1' : '0';
+            const debug = document.getElementById('debugVisual')?.checked ? '1' : '0';
+            localStorage.setItem('tracs_align_mode', align);
+            localStorage.setItem('tracs_inlier_px', inlier);
+            localStorage.setItem('tracs_allow_scale', allow);
+            localStorage.setItem('tracs_debug_visual', debug);
+          } catch {}
+        };
+        ['alignMode','inlierPx','allowScale','debugVisual'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', persistAlignSettings); });
       } catch {}
 
       // Initialize device list when permissions are granted
@@ -535,7 +574,15 @@ PAGE_HTML = """
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         result.innerHTML = 'Processing...';
+        // Ensure alignment options are included
+        const alignMode = document.getElementById('alignMode')?.value || 'ransac';
+        const inlierPx = document.getElementById('inlierPx')?.value || '25';
+        const allowScale = document.getElementById('allowScale')?.checked ? '1' : '0';
         const fd = new FormData(form);
+  fd.set('align_mode', alignMode);
+  fd.set('inlier_px', inlierPx);
+  fd.set('allow_scale', allowScale);
+  fd.set('debug_visual', document.getElementById('debugVisual')?.checked ? '1' : '0');
         const res = await fetch('/process', { method: 'POST', body: fd });
         let data; try { data = await res.json(); } catch { data = null; }
         if (!res.ok) {
@@ -638,11 +685,21 @@ def process():
     except Exception as e:
       return {'error': f'Failed to import image_processing: {e}'}, 500
   try:
+    # Read alignment options from form (optional)
+    align_mode = request.form.get('align_mode', 'ransac')
+    inlier_px = float(request.form.get('inlier_px', '25'))
+    allow_scale = request.form.get('allow_scale', '0') in ('1', 'true', 'True')
+    debug_visual = request.form.get('debug_visual', '0') in ('1', 'true', 'True')
+
     result = analyze_dent(
       str(perfect_path),
       str(dented_path),
       show_plot=False,
       output_path=str(output_path),
+      align_mode=align_mode,
+      inlier_px=float(inlier_px),
+      allow_scale=bool(allow_scale),
+      debug_visual=bool(debug_visual),
     )
   except TypeError as e:
     return {'error': f'Processing failed (type error): {e}'}, 400
