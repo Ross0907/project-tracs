@@ -2,7 +2,7 @@
 
 A comprehensive railway track monitoring and management system that provides real-time track geometry analysis, AI-powered defect detection, and compliance monitoring for railway infrastructure.
 
-Site Preveiw Here with real ITMS car run data: [Link](https://project-tracs.vercel.app/) 
+Site Preveiw Here with real ITMS run data: [Here](https://project-tracs.vercel.app/) 
 ## Project Overview
 
 The ITMS is designed to monitor and analyze railway track conditions using advanced algorithms and real-time data processing. It helps railway operators maintain track safety, detect defects early, and ensure compliance with railway standards.
